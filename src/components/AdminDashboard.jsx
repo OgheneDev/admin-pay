@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Users, DollarSign } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, setDoc, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 // Your Firebase config
 const firebaseConfig = {
@@ -39,23 +39,24 @@ const AdminDashboard = () => {
   // Fetch users from Firestore
   useEffect(() => {
     const fetchUsers = async () => {
-        try {
-          const querySnapshot = await getDocs(collection(db, 'userInfo'));
-          const usersData = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            username: doc.data().username || 'Unknown User', // Default to avoid undefined
-            email: doc.data().email || 'Unknown Email', // Default to avoid undefined
-            balance: doc.data().balance || 0 // Default to 0 for balance
-          }));
-          setUsers(usersData);
-          setLoading(false);
-        } catch (err) {
-          console.error('Error fetching users:', err);
-          setError('Failed to load users');
-          setLoading(false);
-        }
+      try {
+        const querySnapshot = await getDocs(collection(db, 'userInfo'));
+        const usersData = querySnapshot.docs.map(doc => ({
+          id: doc.id, // Document ID remains unchanged for consistency
+          username: doc.data().username || 'Unknown User',
+          email: doc.data().email || 'Unknown Email',
+          balance: doc.data().balance || 0, // Default to 0 if undefined
+          uid: doc.data().uid // Ensure UID is part of the mapped data
+        }));
+        setUsers(usersData);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Failed to load users');
+      } finally {
+        setLoading(false);
+      }
     };
-      
+     
 
     fetchUsers();
   }, []);
@@ -71,24 +72,24 @@ const AdminDashboard = () => {
         newUser.email,
         newUser.password
       );
-
-      // Add to Firestore
-      const userDocRef = await addDoc(collection(db, 'userInfo'), {
+  
+      // Set Firestore document with UID as the ID
+      const userDocRef = doc(db, 'userInfo', userCredential.user.uid); // <-- Use `doc` with UID
+      await setDoc(userDocRef, { // <-- Use `setDoc` instead of `addDoc`
         uid: userCredential.user.uid,
         username: newUser.username,
         email: newUser.email,
-        balance: parseFloat(newUser.balance),
+        balance: parseFloat(newUser.balance), // Ensure balance is a number
         createdAt: new Date().toISOString()
       });
-
+  
       const newUserData = {
-        id: userDocRef.id,
-        uid: userCredential.user.uid,
+        id: userCredential.user.uid, // Match ID with UID
         username: newUser.username,
         email: newUser.email,
         balance: parseFloat(newUser.balance)
       };
-
+  
       setUsers([...users, newUserData]);
       setNewUser({ username: '', email: '', password: '', balance: 0 });
       setShowCreateModal(false);
@@ -99,16 +100,18 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+  
+  
 
   // Update user balance
   const handleUpdateBalance = async (userId, newBalance) => {
     setLoading(true);
     try {
-      const userRef = doc(db, 'userInfo', userId);
+      const userRef = doc(db, 'userInfo', userId); // `userId` matches `uid`
       await updateDoc(userRef, {
-        balance: parseFloat(newBalance)
+        balance: parseFloat(newBalance) // Ensure balance is numeric
       });
-
+  
       setUsers(users.map(user => 
         user.id === userId ? { ...user, balance: parseFloat(newBalance) } : user
       ));
@@ -121,6 +124,8 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+  
+  
 
   const filteredUsers = users.filter(user =>
     (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
