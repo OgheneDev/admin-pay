@@ -1,10 +1,23 @@
 import React from 'react'
-import AdminDashboard from './components/AdminDashboard'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import Dashboard from './pages/Dashboard'
+import LoginPage from './pages/LoginPage'
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <LoginPage />,
+  },
+  {
+    path: '/dashboard',
+    element: <Dashboard />
+  }
+]);
 
 const App = () => {
   return (
     <>
-      <AdminDashboard />
+      <RouterProvider router={router} />
     </>
   )
 }
