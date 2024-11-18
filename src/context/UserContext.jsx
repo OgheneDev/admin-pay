@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useContext, createContext} from "react";
 import { db, auth } from "../firebaseConfig";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword } from "firebase/auth";
 import { collection, setDoc, updateDoc, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 const UserContext = createContext(null);
@@ -136,22 +136,34 @@ export const UserContextProvider = ({children}) => {
   
       setLoading(true);
       try {
+        // Delete the user's document from Firestore
         const userRef = doc(db, 'userInfo', userToDelete.id);
         await deleteDoc(userRef);
-  
-        const currentUser = auth.currentUser;
-        
-        if (currentUser && currentUser.uid === userToDelete.id) {
-          await deleteUser(currentUser);
+
+        // Optionally: Add to a cleanup collection for tracking auth users that need deletion
+        try {
+          const cleanupRef = collection(db, 'authCleanup');
+          await addDoc(cleanupRef, {
+            uid: userToDelete.id,
+            email: userToDelete.email,
+            deletedAt: new Date().toISOString(),
+            status: 'pending'
+          });
+        } catch (cleanupErr) {
+          console.error('Error logging cleanup task:', cleanupErr);
+          // Don't block the main deletion if this fails
         }
   
+        // Update the UI
         setUsers(users.filter(user => user.id !== userToDelete.id));
-        
         setShowDeleteModal(false);
         setUserToDelete(null);
+
+        // Show success message with instructions
+        setError("User data deleted successfully. Note: The authentication user must be deleted manually through the Firebase Console.");
       } catch (err) {
         console.error('Error deleting user:', err);
-        setError('Failed to delete user. ' + err.message);
+        setError('Failed to delete user data. ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -200,7 +212,6 @@ export const useUserContext = () => {
     const context = useContext(UserContext);
     if (!context) {
         throw new Error("useUserContext must be used within UserContextProvider");
-        
     }
     return context;
 }

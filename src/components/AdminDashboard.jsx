@@ -271,39 +271,50 @@ const AdminDashboard = () => {
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && userToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Confirm User Deletion</h2>
-            <p className="mb-4">
-              Are you sure you want to delete user {userToDelete.username} ({userToDelete.email})?
-            </p>
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-            <div className="mt-6 flex justify-end gap-4">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setUserToDelete(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteUser}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
-                disabled={loading}
-              >
-                {loading ? 'Deleting...' : 'Delete User'}
-              </button>
-            </div>
-          </div>
+{showDeleteModal && userToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="bg-white p-6 rounded-lg w-full max-w-md">
+      <h2 className="text-xl font-bold mb-4">Confirm User Deletion</h2>
+      <div className="space-y-4">
+        <p>
+          Are you sure you want to delete user {userToDelete.username} ({userToDelete.email})?
+        </p>
+        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+          <p>Note: This will:</p>
+          <ul className="list-disc ml-5 mt-2">
+            <li>Delete the user's data from the database</li>
+            <li>Log this user for authentication cleanup</li>
+            <li>The authentication user must be manually deleted through Firebase Console</li>
+          </ul>
+        </div>
+      </div>
+      {error && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-400 text-yellow-700 rounded">
+          {error}
         </div>
       )}
+      <div className="mt-6 flex justify-end gap-4">
+        <button
+          onClick={() => {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+            setError(null);
+          }}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDeleteUser}
+          className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
+          disabled={loading}
+        >
+          {loading ? 'Deleting...' : 'Delete User'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
